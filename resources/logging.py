@@ -22,7 +22,7 @@ def get_logger(caller):
 project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 log_dir = os.path.join(project_dir, 'resources/logs')
 if not os.path.exists(log_dir):
-    print('Error initializing logging.')
+    os.makedirs(log_dir)
 
 
 # Dictionary style logging options.
