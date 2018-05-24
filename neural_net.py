@@ -41,26 +41,26 @@ class Normalizer():
 
         continuous_columns = [
             'Lot Frontage', 'Lot Area', 'Mas Vnr Area', 'BsmtFin SF 1', 'BsmtFin SF 2', 'Bsmt Unf SF', 'Total Bsmt SF',
-            # '1st Flr SF', '2nd Flr SF', 'Low Qual Fin SF', 'Gr Liv Area', 'Garage Area', 'Wood Deck SF',
-            # 'Open Porch SF', 'Enclosed Porch', '3Ssn Porch', 'Screen Porch', 'Pool Area', 'Misc Val',
+            '1st Flr SF', '2nd Flr SF', 'Low Qual Fin SF', 'Gr Liv Area', 'Garage Area', 'Wood Deck SF',
+            'Open Porch SF', 'Enclosed Porch', '3Ssn Porch', 'Screen Porch', 'Pool Area', 'Misc Val',
         ]
         discrete_columns = [
-            # 'Year Built', 'Year Remod/Add', 'Bsmt Full Bath', 'Bsmt Half Bath', 'Full Bath', 'Half Bath',
-            # 'Bedroom AbvGr', 'Kitchen AbvGr', 'TotRms AbvGrd', 'Fireplaces', 'Garage Yr Blt', 'Garage Cars', 'Mo Sold',
-            # 'Yr Sold',
+            'Year Built', 'Year Remod/Add', 'Bsmt Full Bath', 'Bsmt Half Bath', 'Full Bath', 'Half Bath',
+            'Bedroom AbvGr', 'Kitchen AbvGr', 'TotRms AbvGrd', 'Fireplaces', 'Garage Yr Blt', 'Garage Cars', 'Mo Sold',
+            'Yr Sold',
         ]
         categorical_columns = [
-            # 'MS SubClass', 'MS Zoning', 'Street', 'Alley', 'Land Contour', 'Lot Config', 'Neighborhood', 'Condition 1',
-            # 'Condition 2', 'Bldg Type', 'House Style', 'Roof Style', 'Roof Matl', 'Exterior 1st', 'Exterior 2nd',
-            # 'Mas Vnr Type', 'Foundation', 'Heating', 'Central Air', 'Garage Type', 'Misc Feature', 'Sale Type',
-            # 'Sale Condition',
+            'MS SubClass', 'MS Zoning', 'Street', 'Alley', 'Land Contour', 'Lot Config', 'Neighborhood', 'Condition 1',
+            'Condition 2', 'Bldg Type', 'House Style', 'Roof Style', 'Roof Matl', 'Exterior 1st', 'Exterior 2nd',
+            'Mas Vnr Type', 'Foundation', 'Heating', 'Central Air', 'Garage Type', 'Misc Feature', 'Sale Type',
+            'Sale Condition',
         ]
         categorical_dict = {}
         ordinal_columns = [
-            # 'Lot Shape', 'Land Slope', 'Overall Qual', 'Overall Cond', 'Exter Qual', 'Exter Cond', 'Bsmt Qual',
-            # 'Bsmt Cond', 'Bsmt Exposure', 'BsmtFin Type 1', 'BsmtFin Type 2', 'Heating QC', 'Electrical',
-            # 'Kitchen Qual', 'Functional', 'Fireplace Qu', 'Garage Finish', 'Garage Qual', 'Garage Cond', 'Paved Drive',
-            # 'Pool QC', 'Fence',
+            'Lot Shape', 'Land Slope', 'Overall Qual', 'Overall Cond', 'Exter Qual', 'Exter Cond', 'Bsmt Qual',
+            'Bsmt Cond', 'Bsmt Exposure', 'BsmtFin Type 1', 'BsmtFin Type 2', 'Heating QC', 'Electrical',
+            'Kitchen Qual', 'Functional', 'Fireplace Qu', 'Garage Finish', 'Garage Qual', 'Garage Cond', 'Paved Drive',
+            'Pool QC', 'Fence',
         ]
         ordinal_dict = {}
         ignored_columns = ['Utilities',]
@@ -202,7 +202,6 @@ class BackPropNet():
         Weight values are randomized values near 0, using a normal distribution.
         :param data: Data to reference for input layer count.
         """
-        logger.info('Columns: {0}'.format(data.columns))
         # Create first hidden layer.
         hidden_layer_1 = []
         for index in range(self.hidden_layer_size):
@@ -227,10 +226,10 @@ class BackPropNet():
         self.network.append(hidden_layer_2)
         self.network.append(output_layer)
 
-        logger.info('Network:')
+        # logger.info('Network:')
         index = 0
         for layer in self.network:
-            logger.info('Layer {0}: {1}'.format(index, layer))
+            # logger.info('Layer {0}: {1}'.format(index, layer))
             index += 1
 
     def _activation(self, weights, inputs):
@@ -312,14 +311,14 @@ class BackPropNet():
         :param targets: Desired prediction.
         :return: Delta of error difference.
         """
-        return ( (targets - prediction) ** 2) # TODO: Is this ever used?
+        return ( (targets - prediction) ** 2)
 
     def train(self, features, targets):
         """
         Trains net based on provided data.
         :param data: Data to train on.
         """
-        logger.info('Initial Inputs: {0}'.format(features))
+        # logger.info('Initial Inputs: {0}'.format(features))
         prediction = []
         self.layer_inputs = []
         for index in range(len(features)):
@@ -330,6 +329,7 @@ class BackPropNet():
         self._backward_propagate(features, targets, prediction, delta_error)
         logger.info('Expected targets: {0}'.format(targets))
         logger.info('Predicted targets: {0}'.format(prediction))
+        logger.info('')
 
     def predict(self, data):
         """
