@@ -182,6 +182,7 @@ class BackPropNet():
         self.hidden_layer_size = 3
         self.network = []
         self._create_architecture(data)
+        self.learning_rate = 0.001
 
     def _create_architecture(self, data):
         """
@@ -223,7 +224,7 @@ class BackPropNet():
 
     def _activation(self, weights, inputs):
         """
-        Calculate if neuron fires or not, based on inputs and weights being calculated and passed into sigmoid.
+        Calculate how strongly neuron fires, based on inputs and weights being calculated and passed into sigmoid.
         :param weights: Weights of given layer.
         :param inputs: Inputs to calculate with.
         :return: Calculated value, passed through sigmoid.
@@ -235,6 +236,26 @@ class BackPropNet():
 
         # Pass into sigmoid, then return result.
         return self._sigmoid(activation_value)
+
+    def _reverse_activation(self, weights, outputs):
+        """
+        Calculates reverse of initial values, prior to neuron firing.
+        :param weights: Weights of the given layer.
+        :param inputs: Previously calculated output.
+        :return:
+        """
+        inputs = []
+        # logger.info('Weights: {0}'.format(weights))
+        for output in outputs:
+            # logger.info('Output to reverse: {0}'.format(output))
+            for index in range(len(weights) - 1):
+                # logger.info('Output: {0}'.format(output[0]))
+                pre_sigmoid_value = self._reverse_sigmoid(output[0])
+                output_rev = (weights[index] * pre_sigmoid_value)
+                input = output[0] - output_rev
+            inputs.append(input)
+            # How do you calculate this and where does weight updating come in?
+        return inputs
 
     def _sigmoid(self, value):
         """
@@ -267,13 +288,21 @@ class BackPropNet():
             inputs = outputs
         return outputs
 
-    def _backward_propagate(self, inputs):
+    def _backward_propagate(self, features, targets, prediction, delta_error):
         """
         Walk backward through the neural network, using derivatives.
         :param inputs: Original output of network.
         :return: ???
         """
-        pass
+        # Iterate backwards through network.
+        outputs = prediction
+        inputs = None
+        for index in reversed(range(len(self.network))):
+            inputs = []
+            for neuron in self.network[index]:
+                inputs.append(self._reverse_activation(neuron, outputs))
+            outputs = inputs
+        return inputs
 
     def _calculate_delta(self, prediction, targets):
         """
@@ -289,11 +318,14 @@ class BackPropNet():
         Trains net based on provided data.
         :param data: Data to train on.
         """
+        logger.info('Initial Inputs: {0}'.format(features))
         prediction = []
         for index in range(len(features)):
             prediction.append(self._forward_propagate(features[index]))
         delta_error = self._calculate_delta(prediction, targets)
         logger.info('Delta Error: {0}'.format(delta_error))
+        back_prop_result = self._backward_propagate(features, targets, prediction, delta_error)
+        logger.info('Backprop Result: {0}'.format(back_prop_result))
 
     def predict(self, data):
         """
