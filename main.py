@@ -18,7 +18,7 @@ logger = logging.get_logger(__name__)
 housing_data = pandas.read_csv('./Documents/other_housing.csv')
 
 # Initially only work with first 10, for testing purposes.
-housing_data = housing_data[0:5]
+housing_data = housing_data[0:3]
 
 # Normalize data.
 logger.info('')
@@ -28,8 +28,9 @@ features = normalized_data.loc[:, normalized_data.columns != 'SalePrice']
 targets = normalized_data['SalePrice']
 
 logger.info('')
-logger.info('Normalized Features: \n{0}'.format(features))
-logger.info('Normailzed Targets: \n{0}'.format(targets))
+# logger.info('Normalized Features: \n{0}'.format(features))
+# logger.info('Normalized Targets: \n{0}'.format(targets))
 
 # Start neural net.
-backprop = neural_net.BackPropNet(normalized_data)
+backprop = neural_net.BackPropNet(normalized_data.values)
+backprop.train(features.values, targets.values)

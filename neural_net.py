@@ -14,6 +14,10 @@ from resources import logging
 logger = logging.get_logger(__name__)
 
 
+# Disable false positive warning. Occurred when trying to remove NaN values from dataset.
+pandas.options.mode.chained_assignment = None
+
+
 class Normalizer():
     """
     Handles data normalization.
@@ -37,26 +41,26 @@ class Normalizer():
 
         continuous_columns = [
             'Lot Frontage', 'Lot Area', 'Mas Vnr Area', 'BsmtFin SF 1', 'BsmtFin SF 2', 'Bsmt Unf SF', 'Total Bsmt SF',
-            '1st Flr SF', '2nd Flr SF', 'Low Qual Fin SF', 'Gr Liv Area', 'Garage Area', 'Wood Deck SF',
-            'Open Porch SF', 'Enclosed Porch', '3Ssn Porch', 'Screen Porch', 'Pool Area', 'Misc Val',
+            # '1st Flr SF', '2nd Flr SF', 'Low Qual Fin SF', 'Gr Liv Area', 'Garage Area', 'Wood Deck SF',
+            # 'Open Porch SF', 'Enclosed Porch', '3Ssn Porch', 'Screen Porch', 'Pool Area', 'Misc Val',
         ]
         discrete_columns = [
-            'Year Built', 'Year Remod/Add', 'Bsmt Full Bath', 'Bsmt Half Bath', 'Full Bath', 'Half Bath',
-            'Bedroom AbvGr', 'Kitchen AbvGr', 'TotRms AbvGrd', 'Fireplaces', 'Garage Yr Blt', 'Garage Cars', 'Mo Sold',
-            'Yr Sold',
+            # 'Year Built', 'Year Remod/Add', 'Bsmt Full Bath', 'Bsmt Half Bath', 'Full Bath', 'Half Bath',
+            # 'Bedroom AbvGr', 'Kitchen AbvGr', 'TotRms AbvGrd', 'Fireplaces', 'Garage Yr Blt', 'Garage Cars', 'Mo Sold',
+            # 'Yr Sold',
         ]
         categorical_columns = [
-            'MS SubClass', 'MS Zoning', 'Street', 'Alley', 'Land Contour', 'Lot Config', 'Neighborhood', 'Condition 1',
-            'Condition 2', 'Bldg Type', 'House Style', 'Roof Style', 'Roof Matl', 'Exterior 1st', 'Exterior 2nd',
-            'Mas Vnr Type', 'Foundation', 'Heating', 'Central Air', 'Garage Type', 'Misc Feature', 'Sale Type',
-            'Sale Condition',
+            # 'MS SubClass', 'MS Zoning', 'Street', 'Alley', 'Land Contour', 'Lot Config', 'Neighborhood', 'Condition 1',
+            # 'Condition 2', 'Bldg Type', 'House Style', 'Roof Style', 'Roof Matl', 'Exterior 1st', 'Exterior 2nd',
+            # 'Mas Vnr Type', 'Foundation', 'Heating', 'Central Air', 'Garage Type', 'Misc Feature', 'Sale Type',
+            # 'Sale Condition',
         ]
         categorical_dict = {}
         ordinal_columns = [
-            'Lot Shape', 'Land Slope', 'Overall Qual', 'Overall Cond', 'Exter Qual', 'Exter Cond', 'Bsmt Qual',
-            'Bsmt Cond', 'Bsmt Exposure', 'BsmtFin Type 1', 'BsmtFin Type 2', 'Heating QC', 'Electrical',
-            'Kitchen Qual', 'Functional', 'Fireplace Qu', 'Garage Finish', 'Garage Qual', 'Garage Cond', 'Paved Drive',
-            'Pool QC', 'Fence',
+            # 'Lot Shape', 'Land Slope', 'Overall Qual', 'Overall Cond', 'Exter Qual', 'Exter Cond', 'Bsmt Qual',
+            # 'Bsmt Cond', 'Bsmt Exposure', 'BsmtFin Type 1', 'BsmtFin Type 2', 'Heating QC', 'Electrical',
+            # 'Kitchen Qual', 'Functional', 'Fireplace Qu', 'Garage Finish', 'Garage Qual', 'Garage Cond', 'Paved Drive',
+            # 'Pool QC', 'Fence',
         ]
         ordinal_dict = {}
         ignored_columns = ['Utilities',]
@@ -64,8 +68,13 @@ class Normalizer():
 
         # Process continuous data.
         for column in continuous_columns:
-            self.squish_values(orig_data, column)
             if column in orig_data.columns:
+                # Normalize.
+                self.squish_values(orig_data, column)
+
+                # Remove NaN references.
+                orig_data[column] = orig_data[column].fillna(value=0)
+
                 # Add column to normalized data list.
                 frame = pandas.DataFrame(orig_data[column])
                 normalized_data = normalized_data.join(frame, how='outer')
@@ -73,8 +82,13 @@ class Normalizer():
 
         # Process discreet data. Currently handles as if it were continuous.
         for column in discrete_columns:
-            self.squish_values(orig_data, column)
             if column in orig_data.columns:
+                # Normalize.
+                self.squish_values(orig_data, column)
+
+                # Remove NaN references.
+                orig_data[column] = orig_data[column].fillna(value=0)
+
                 # Add column to normalized data list.
                 frame = pandas.DataFrame(orig_data[column])
                 normalized_data = normalized_data.join(frame, how='outer')
@@ -82,29 +96,33 @@ class Normalizer():
 
         # Process categorical data.
         for column in categorical_columns:
-            # Remove NaN references.
-            orig_data[column] = orig_data[column].fillna(value='NaN')
             if column in orig_data.columns:
+                # Remove NaN references.
+                orig_data[column] = orig_data[column].fillna(value='NaN')
+
                 # Turn single column into onehot matrix.
                 onehot_tuple = self.create_onehot(orig_data[column])
                 # Add onehot matrix to normalized data list.
                 frame = pandas.DataFrame(onehot_tuple[0])
                 normalized_data = normalized_data.join(frame, how='outer')
                 orig_data = orig_data.loc[:, orig_data.columns != column]
+
                 # Save newly created columns associated with the original column.
                 categorical_dict[column] = onehot_tuple[1]
 
         # Process ordinal data. Currently handles as categorical. Perhaps a better way?
         for column in ordinal_columns:
-            # Remove NaN references.
-            orig_data[column] = orig_data[column].fillna(value='NaN')
             if column in orig_data.columns:
+                # Remove NaN references.
+                orig_data[column] = orig_data[column].fillna(value='NaN')
+
                 # Turn single column into onehot matrix.
                 onehot_tuple = self.create_onehot(orig_data[column])
                 # Add onehot matrix to normalized data list.
                 frame = pandas.DataFrame(onehot_tuple[0])
                 normalized_data = normalized_data.join(frame, how='outer')
                 orig_data = orig_data.loc[:, orig_data.columns != column]
+
                 # Save newly created columns associated with the original column.
                 categorical_dict[column] = onehot_tuple[1]
 
@@ -203,7 +221,7 @@ class BackPropNet():
             # logger.info('Layer {0}: {1}'.format(index, layer))
             index += 1
 
-    def activation(self, weights, inputs):
+    def _activation(self, weights, inputs):
         """
         Calculate if neuron fires or not, based on inputs and weights being calculated and passed into sigmoid.
         :param weights: Weights of given layer.
@@ -211,14 +229,14 @@ class BackPropNet():
         :return: Calculated value, passed through sigmoid.
         """
         # Calculate single value based on inputs and weights.
-        value = weights[-1]
+        activation_value = weights[-1]
         for index in range(len(weights) - 1):
-            value += weights[index] * inputs[index]
+            activation_value += (weights[index] * inputs[index])
 
         # Pass into sigmoid, then return result.
-        return self.sigmoid(value)
+        return self._sigmoid(activation_value)
 
-    def sigmoid(self, value):
+    def _sigmoid(self, value):
         """
         Calculate the sigmoid of the provided value.
         :param value: Single value to calculate.
@@ -226,15 +244,15 @@ class BackPropNet():
         """
         return ( 1 / (1 + math.exp(-value)) )
 
-    def reverse_sigmoid(self, value):
+    def _reverse_sigmoid(self, value):
         """
         Calculate the derivative of sigmoid.
         :param value: Single value to calculate.
         :return: Reverse sigmoid of value.
         """
-        return ( self.sigmoid(value) * ( 1 - self.sigmoid(value) ) )
+        return ( self._sigmoid(value) * ( 1 - self._sigmoid(value) ) )
 
-    def forward_propagate(self, inputs):
+    def _forward_propagate(self, inputs):
         """
         Walk forward through the neural network.
         :param inputs: Initial inputs for network.
@@ -242,19 +260,48 @@ class BackPropNet():
         """
         outputs = None
         # Iterate through each value in network, using previous outputs as new inputs.
-        for layer in self.network:
+        for index in range(len(self.network)):
             outputs = []
-            for neuron in layer:
-                outputs = inputs.append(self.activation(neuron[0], inputs))
+            for neuron in self.network[index]:
+                outputs.append(self._activation(neuron, inputs))
             inputs = outputs
         return outputs
 
-    def backward_propagate(self, inputs):
+    def _backward_propagate(self, inputs):
         """
         Walk backward through the neural network, using derivatives.
         :param inputs: Original output of network.
         :return: ???
         """
+        pass
+
+    def _calculate_delta(self, prediction, targets):
+        """
+        Calculates an error delta.
+        :param prediction: Current prediction.
+        :param targets: Desired prediction.
+        :return: Delta of error difference.
+        """
+        return ( (targets - prediction) ** 2)
+
+    def train(self, features, targets):
+        """
+        Trains net based on provided data.
+        :param data: Data to train on.
+        """
+        prediction = []
+        for index in range(len(features)):
+            prediction.append(self._forward_propagate(features[index]))
+        delta_error = self._calculate_delta(prediction, targets)
+        logger.info('Delta Error: {0}'.format(delta_error))
+
+    def predict(self, data):
+        """
+        Makes a prediction with the given data.
+        :param data: Data to predict with.
+        :return: Prediction of values.
+        """
+        return self._forward_propagate(data)
 
 class ResultTracker():
     """
