@@ -17,8 +17,8 @@ logger = logging.get_logger(__name__)
 # Load in CSV.
 housing_data = pandas.read_csv('./Documents/other_housing.csv')
 
-# Initially only work with first 10, for testing purposes.
-housing_data = housing_data[0:3]
+# Initially only work with first few, for testing purposes.
+# housing_data = housing_data[0:3]
 
 # Normalize data.
 logger.info('')
@@ -32,5 +32,5 @@ logger.info('')
 # logger.info('Normalized Targets: \n{0}'.format(targets))
 
 # Start neural net.
-backprop = neural_net.BackPropNet(normalized_data.values)
+backprop = neural_net.BackPropNet(features)
 backprop.train(features.values, targets.values)

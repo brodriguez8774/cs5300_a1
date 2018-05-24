@@ -130,10 +130,19 @@ class Normalizer():
         for column in ignored_columns:
             orig_data = orig_data.loc[:, orig_data.columns != column]
 
-        # Target Data. Should this be normalized as well?
-        # Add column to normalized data list.
-        frame = pandas.DataFrame(orig_data[target_column])
-        normalized_data = normalized_data.join(frame, how='outer')
+        # Process target data. Handles same as continous.
+        for column in target_column:
+            if column in orig_data.columns:
+                # Normalize.
+                self.squish_values(orig_data, column)
+
+                # Remove NaN references.
+                orig_data[column] = orig_data[column].fillna(value=0)
+
+                # Add column to normalized data list.
+                frame = pandas.DataFrame(orig_data[column])
+                normalized_data = normalized_data.join(frame, how='outer')
+                orig_data = orig_data.loc[:, orig_data.columns != column]
 
         return normalized_data
 
@@ -181,6 +190,7 @@ class BackPropNet():
     def __init__(self, data):
         self.hidden_layer_size = 3
         self.network = []
+        self.layer_inputs = None
         self._create_architecture(data)
         self.learning_rate = 0.001
 
@@ -192,11 +202,12 @@ class BackPropNet():
         Weight values are randomized values near 0, using a normal distribution.
         :param data: Data to reference for input layer count.
         """
+        logger.info('Columns: {0}'.format(data.columns))
         # Create first hidden layer.
         hidden_layer_1 = []
         for index in range(self.hidden_layer_size):
             hidden_layer_1.append([
-                (numpy.random.randn() * 0.001) for index in range(len(data) + 1)
+                (numpy.random.randn() * 0.001) for index in range(len(data.columns) + 1)
             ])
 
         # Create second hidden layer.
@@ -216,10 +227,10 @@ class BackPropNet():
         self.network.append(hidden_layer_2)
         self.network.append(output_layer)
 
-        # logger.info('Network:')
+        logger.info('Network:')
         index = 0
         for layer in self.network:
-            # logger.info('Layer {0}: {1}'.format(index, layer))
+            logger.info('Layer {0}: {1}'.format(index, layer))
             index += 1
 
     def _activation(self, weights, inputs):
@@ -239,23 +250,15 @@ class BackPropNet():
 
     def _reverse_activation(self, weights, outputs):
         """
-        Calculates reverse of initial values, prior to neuron firing.
+        Calculates derivative and adjusts weight accordingly.
         :param weights: Weights of the given layer.
         :param inputs: Previously calculated output.
-        :return:
         """
-        inputs = []
-        # logger.info('Weights: {0}'.format(weights))
         for output in outputs:
-            # logger.info('Output to reverse: {0}'.format(output))
             for index in range(len(weights) - 1):
-                # logger.info('Output: {0}'.format(output[0]))
                 pre_sigmoid_value = self._reverse_sigmoid(output[0])
-                output_rev = (weights[index] * pre_sigmoid_value)
-                input = output[0] - output_rev
-            inputs.append(input)
-            # How do you calculate this and where does weight updating come in?
-        return inputs
+                derivative = (weights[index] * pre_sigmoid_value)
+                weights[index] -= (derivative * self.learning_rate)
 
     def _sigmoid(self, value):
         """
@@ -273,7 +276,7 @@ class BackPropNet():
         """
         return ( self._sigmoid(value) * ( 1 - self._sigmoid(value) ) )
 
-    def _forward_propagate(self, inputs):
+    def _forward_propagate(self, inputs, training=False):
         """
         Walk forward through the neural network.
         :param inputs: Initial inputs for network.
@@ -283,6 +286,8 @@ class BackPropNet():
         # Iterate through each value in network, using previous outputs as new inputs.
         for index in range(len(self.network)):
             outputs = []
+            if training:
+                self.layer_inputs.append(inputs)
             for neuron in self.network[index]:
                 outputs.append(self._activation(neuron, inputs))
             inputs = outputs
@@ -292,17 +297,13 @@ class BackPropNet():
         """
         Walk backward through the neural network, using derivatives.
         :param inputs: Original output of network.
-        :return: ???
         """
         # Iterate backwards through network.
         outputs = prediction
-        inputs = None
         for index in reversed(range(len(self.network))):
-            inputs = []
             for neuron in self.network[index]:
-                inputs.append(self._reverse_activation(neuron, outputs))
-            outputs = inputs
-        return inputs
+                self._reverse_activation(neuron, outputs)
+        # TODO: Where does delta come in?
 
     def _calculate_delta(self, prediction, targets):
         """
@@ -311,7 +312,7 @@ class BackPropNet():
         :param targets: Desired prediction.
         :return: Delta of error difference.
         """
-        return ( (targets - prediction) ** 2)
+        return ( (targets - prediction) ** 2) # TODO: Is this ever used?
 
     def train(self, features, targets):
         """
@@ -320,12 +321,15 @@ class BackPropNet():
         """
         logger.info('Initial Inputs: {0}'.format(features))
         prediction = []
+        self.layer_inputs = []
         for index in range(len(features)):
-            prediction.append(self._forward_propagate(features[index]))
+            prediction.append(self._forward_propagate(features[index], training=True))
+        # logger.info('Layer Inputs: {0}'.format(self.layer_inputs))
         delta_error = self._calculate_delta(prediction, targets)
-        logger.info('Delta Error: {0}'.format(delta_error))
-        back_prop_result = self._backward_propagate(features, targets, prediction, delta_error)
-        logger.info('Backprop Result: {0}'.format(back_prop_result))
+        # logger.info('Delta Error: {0}'.format(delta_error))
+        self._backward_propagate(features, targets, prediction, delta_error)
+        logger.info('Expected targets: {0}'.format(targets))
+        logger.info('Predicted targets: {0}'.format(prediction))
 
     def predict(self, data):
         """
