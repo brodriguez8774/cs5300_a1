@@ -14,9 +14,10 @@ class ResultTracker():
     """
     Tracks statistics and progress of Neural Net.
     """
-    def __init__(self):
+    def __init__(self, min_iterations):
         self.iterations = []
         self.best_iteration_index = 0
+        self.min_iterations = min_iterations
 
     def add_iteration(self, weights, error_margin):
         """
@@ -35,19 +36,29 @@ class ResultTracker():
         if error_margin < self.iterations[self.best_iteration_index][1]:
             self.best_iteration_index = len(self.iterations) - 1
 
-    def continue_training_check(self):
+    def continue_training_check(self, max_epochs=None, iteration_diff=10):
         """
         Determines if Neural Net should continue training.
+        :param max_epochs: Optional arg to set a max epoch count on training iterations.
         :return: True on continued training. False on training complete.
         """
+        exit_training = False
         total_iterations = len(self.iterations)
 
-        # Make Neural Net iterate at least 10 times.
-        if total_iterations <= 10:
-            return True
+        # Make Neural Net iterate a minimum set of times.
+        if total_iterations <= self.min_iterations:
+            exit_training = True
 
-        # Check if Neural Net is still improving. Continue if progress has made in last 5 iterations.
-        if self.best_iteration_index > (total_iterations - 5):
-            return True
+        # Check if Neural Net is still improving.
+        if max_epochs is None:
+            # Continue if progress has made in last x iterations.
+            if self.best_iteration_index > (total_iterations - iteration_diff):
+                exit_training = True
+        else:
+            # Check if under epoch count.
+            if total_iterations < max_epochs:
+                # Continue if progress has been made in last x iterations.
+                if self.best_iteration_index > (total_iterations - iteration_diff):
+                    exit_training = True
 
-        return False
+        return exit_training

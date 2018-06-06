@@ -188,7 +188,7 @@ class BackPropNet():
     Neural Net implementing back propagation.
     """
     def __init__(self, data):
-        self.hidden_layer_size = 10
+        self.hidden_layer_size = 3
         self.network = []
         self._create_architecture(data)
 
@@ -304,19 +304,24 @@ class BackPropNet():
                 # Backprop already started.
                 for neuron_index in range(len(layer)):
                     neuron = layer[neuron_index]
-                    errors.append(targets[neuron_index] - neuron['output'])
+                    if neuron_index < len(targets):
+                        errors.append(targets[neuron_index] - neuron['output'])
             else:
                 # Backprop just starting. Multiply neuron weights and delta to establish error.
-                for neuron_index in range(len(layer)):
+                for neuron_index in range(len(layer) - 1):
                     error = 0
                     for neuron in self.network[layer_index + 1]:
-                        error += (neuron['weights'][neuron_index] * neuron['delta'])
+                        try:
+                            error += (neuron['weights'][neuron_index] * neuron['delta'])
+                        except KeyError:
+                            pass
                     errors.append(error)
 
             # Calculate the delta error of the current layer.
             for neuron_index in range(len(layer)):
                 neuron = layer[neuron_index]
-                neuron['delta'] = errors[neuron_index] * self._reverse_sigmoid(neuron['output'])
+                if neuron_index < len(errors):
+                    neuron['delta'] = errors[neuron_index] * self._reverse_sigmoid(neuron['output'])
 
     def _calculate_delta(self, prediction, targets):
         """
@@ -347,9 +352,15 @@ class BackPropNet():
             # Multiplies the input, delta, and learn rate to update weights.
             for neuron in self.network[layer_index]:
                 for input_index in range(len(inputs)):
-                    neuron['weights'][input_index] += learn_rate * neuron['delta'] * inputs[input_index]
+                    try:
+                        neuron['weights'][input_index] += learn_rate * neuron['delta'] * inputs[input_index]
+                    except KeyError:
+                        pass
                 # Also update the bias for the layer.
-                neuron['weights'][-1] += learn_rate * neuron['delta']
+                try:
+                    neuron['weights'][-1] += learn_rate * neuron['delta']
+                except KeyError:
+                    pass
 
     def train(self, features, targets, learn_rate=0.5):
         """
@@ -374,7 +385,7 @@ class BackPropNet():
             # Backstep through network to correct and modify weights for future predictions.
             self._backward_propagate_error(targets)
             self._update_weights(features[index], learn_rate)
-        return total_error
+        return self.network, total_error
 
     def predict(self, data):
         """
