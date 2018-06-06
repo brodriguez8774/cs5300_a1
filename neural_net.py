@@ -4,7 +4,7 @@ Neural Net logic.
 
 # System Imports.
 from sklearn import preprocessing
-import math, numpy, pandas
+import numpy, pandas
 
 # User Class Imports.
 from resources import logging
@@ -188,11 +188,9 @@ class BackPropNet():
     Neural Net implementing back propagation.
     """
     def __init__(self, data):
-        self.hidden_layer_size = 3
+        self.hidden_layer_size = 10
         self.network = []
-        self.layer_inputs = None
         self._create_architecture(data)
-        self.learning_rate = 0.001
 
     def _create_architecture(self, data):
         """
@@ -204,105 +202,121 @@ class BackPropNet():
         """
         # Create first hidden layer.
         hidden_layer_1 = []
-        for index in range(self.hidden_layer_size):
-            hidden_layer_1.append([
-                (numpy.random.randn() * 0.001) for index in range(len(data.columns) + 1)
-            ])
+        for neuron_index in range(self.hidden_layer_size):
+            hidden_layer_1.append({})
+            dict_values = []
+            for input_index in range(len(data.columns)):
+                 dict_values += [numpy.random.randn() * 0.001]
+            hidden_layer_1[neuron_index]['weights'] = dict_values
 
         # Create second hidden layer.
         hidden_layer_2 = []
-        for index in range(self.hidden_layer_size):
-            hidden_layer_2.append([
-                (numpy.random.randn() * 0.001) for index in range(self.hidden_layer_size + 1)
-            ])
+        for neuron_index in range(self.hidden_layer_size):
+            hidden_layer_2.append({})
+            dict_values = []
+            for input_index in range(self.hidden_layer_size + 1):
+                dict_values += [numpy.random.randn() * 0.001]
+            hidden_layer_2[neuron_index]['weights'] = dict_values
 
         # Create output layer
-        output_layer = [[
-            (numpy.random.randn() * 0.001) for index in range(self.hidden_layer_size + 1)
-        ]]
+        output_layer = []
+        for index in range(len(data.values)):
+            output_layer.append({})
+            dict_values = []
+            for input_index in range(self.hidden_layer_size + 1):
+                dict_values += [numpy.random.randn() * 0.001]
+            output_layer[index]['weights'] = dict_values
 
         # Add layers to network.
         self.network.append(hidden_layer_1)
         self.network.append(hidden_layer_2)
         self.network.append(output_layer)
 
-        # logger.info('Network:')
+        logger.info('')
+        logger.info('Network:')
         index = 0
         for layer in self.network:
-            # logger.info('Layer {0}: {1}'.format(index, layer))
+            logger.info('Layer {0} has {1} neurons: {2}'.format(index, len(layer), layer))
             index += 1
+        logger.info('')
+        logger.info('')
 
     def _activation(self, weights, inputs):
         """
         Calculate how strongly neuron fires, based on inputs and weights being calculated and passed into sigmoid.
+        Multiplies inputs and weights, adds bias, passes into sigmoid, then returns result.
         :param weights: Weights of given layer.
         :param inputs: Inputs to calculate with.
         :return: Calculated value, passed through sigmoid.
         """
-        # Calculate single value based on inputs and weights.
-        activation_value = weights[-1]
-        for index in range(len(weights) - 1):
-            activation_value += (weights[index] * inputs[index])
-
-        # Pass into sigmoid, then return result.
-        return self._sigmoid(activation_value)
-
-    def _reverse_activation(self, weights, outputs):
-        """
-        Calculates derivative and adjusts weight accordingly.
-        :param weights: Weights of the given layer.
-        :param inputs: Previously calculated output.
-        """
-        for output in outputs:
-            for index in range(len(weights) - 1):
-                pre_sigmoid_value = self._reverse_sigmoid(output[0])
-                derivative = (weights[index] * pre_sigmoid_value)
-                weights[index] -= (derivative * self.learning_rate)
+        bias = weights[-1]
+        return self._sigmoid(numpy.dot(inputs, weights[:-1].copy()) + bias)
 
     def _sigmoid(self, value):
         """
         Calculate the sigmoid of the provided value.
-        :param value: Single value to calculate.
+        :param value: Value to calculate with.
         :return: Sigmoid of value.
         """
-        return ( 1 / (1 + math.exp(-value)) )
+        return ( 1 / (1 + numpy.exp(-value)) )
 
     def _reverse_sigmoid(self, value):
         """
         Calculate the derivative of sigmoid.
-        :param value: Single value to calculate.
+        :param value: Value to calculate with.
         :return: Reverse sigmoid of value.
         """
-        return ( self._sigmoid(value) * ( 1 - self._sigmoid(value) ) )
+        return (value * (1 - value))
 
-    def _forward_propagate(self, inputs, training=False):
+    def _forward_propagate(self, inputs):
         """
         Walk forward through the neural network.
         :param inputs: Initial inputs for network.
         :return: Output results of network.
         """
         outputs = None
-        # Iterate through each value in network, using previous outputs as new inputs.
+        # Iterate through each layer in network, using previous outputs as new inputs.
         for index in range(len(self.network)):
             outputs = []
-            if training:
-                self.layer_inputs.append(inputs)
+            # Iterate through each neuron in the given layer, determining activation and saving as the layer output.
             for neuron in self.network[index]:
-                outputs.append(self._activation(neuron, inputs))
+                neuron['output'] = self._activation(neuron['weights'], inputs)
+                outputs.append(neuron['output'])
             inputs = outputs
         return outputs
 
-    def _backward_propagate(self, features, targets, prediction, delta_error):
+    def _backward_propagate_error(self, targets):
         """
         Walk backward through the neural network, using derivatives.
-        :param inputs: Original output of network.
+
+        Due to issues implementing myself, this function is heavily referenced from
+        https://machinelearningmastery.com/implement-backpropagation-algorithm-scratch-python/
+
+        :param targets: Desired output of network.
         """
-        # Iterate backwards through network.
-        outputs = prediction
-        for index in reversed(range(len(self.network))):
-            for neuron in self.network[index]:
-                self._reverse_activation(neuron, outputs)
-        # TODO: Where does delta come in?
+        # Iterate backward through all network layers.
+        for layer_index in reversed(range(len(self.network))):
+            layer = self.network[layer_index]
+            errors = []
+
+            # Check if starting backprop.
+            if layer_index == (len(self.network) - 1):
+                # Backprop already started.
+                for neuron_index in range(len(layer)):
+                    neuron = layer[neuron_index]
+                    errors.append(targets[neuron_index] - neuron['output'])
+            else:
+                # Backprop just starting. Multiply neuron weights and delta to establish error.
+                for neuron_index in range(len(layer)):
+                    error = 0
+                    for neuron in self.network[layer_index + 1]:
+                        error += (neuron['weights'][neuron_index] * neuron['delta'])
+                    errors.append(error)
+
+            # Calculate the delta error of the current layer.
+            for neuron_index in range(len(layer)):
+                neuron = layer[neuron_index]
+                neuron['delta'] = errors[neuron_index] * self._reverse_sigmoid(neuron['output'])
 
     def _calculate_delta(self, prediction, targets):
         """
@@ -313,23 +327,54 @@ class BackPropNet():
         """
         return ( (targets - prediction) ** 2)
 
-    def train(self, features, targets):
+    def _update_weights(self, row, learn_rate):
+        """
+        Iterate through the network and all neurons, using the delta and learn rate to update weights and biases.
+        :param row: A single row/record of feature inputs.
+        :param learn_rate: The rate for the weights to learn by.
+        """
+        # Iterate through all network layers once more.
+        for layer_index in range(len(self.network)):
+            inputs = row[:-1]
+            # If not first layer.
+            if layer_index != 0:
+                inputs = []
+                # Add up all neuron inputs of previous layer?
+                for neuron in self.network[layer_index - 1]:
+                    inputs += neuron['output']
+
+            # Iterate through all neurons and neuron inputs.
+            # Multiplies the input, delta, and learn rate to update weights.
+            for neuron in self.network[layer_index]:
+                for input_index in range(len(inputs)):
+                    neuron['weights'][input_index] += learn_rate * neuron['delta'] * inputs[input_index]
+                # Also update the bias for the layer.
+                neuron['weights'][-1] += learn_rate * neuron['delta']
+
+    def train(self, features, targets, learn_rate=0.5):
         """
         Trains net based on provided data.
-        :param data: Data to train on.
+        :param features: Set of inputs to use for training.
+        :param targets: Desired output after prosessing features.
+        :param learn_rate: The rate of learning based off of errors.
+        :return: The total accumulated error between predictions and values, while training.
         """
-        # logger.info('Initial Inputs: {0}'.format(features))
-        prediction = []
-        self.layer_inputs = []
+        total_error = 0
+        # Iterate through each row of inputs in features.
         for index in range(len(features)):
-            prediction.append(self._forward_propagate(features[index], training=True))
-        # logger.info('Layer Inputs: {0}'.format(self.layer_inputs))
-        delta_error = self._calculate_delta(prediction, targets)
-        # logger.info('Delta Error: {0}'.format(delta_error))
-        self._backward_propagate(features, targets, prediction, delta_error)
-        logger.info('Expected targets: {0}'.format(targets))
-        logger.info('Predicted targets: {0}'.format(prediction))
-        logger.info('')
+            # Pass inputs through neural net to create predictions.
+            outputs = self.predict(features[index])
+
+            # Determine error value between predicted output and targets.
+            delta_error = 0
+            for error_index in range(len(targets)):
+                delta_error += self._calculate_delta(outputs[error_index], targets[error_index])
+            total_error += delta_error
+
+            # Backstep through network to correct and modify weights for future predictions.
+            self._backward_propagate_error(targets)
+            self._update_weights(features[index], learn_rate)
+        return total_error
 
     def predict(self, data):
         """
@@ -338,6 +383,7 @@ class BackPropNet():
         :return: Prediction of values.
         """
         return self._forward_propagate(data)
+
 
 class ResultTracker():
     """
