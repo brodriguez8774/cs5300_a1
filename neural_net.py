@@ -383,9 +383,3 @@ class BackPropNet():
         :return: Prediction of values.
         """
         return self._forward_propagate(data)
-
-
-class ResultTracker():
-    """
-    Tracks statistics and progress of main Neural Net class.
-    """
