@@ -387,10 +387,18 @@ class BackPropNet():
             self._update_weights(features[index], learn_rate)
         return self.network, total_error
 
-    def predict(self, data):
+    def predict(self, data, targets=None):
         """
         Makes a prediction with the given data.
         :param data: Data to predict with.
         :return: Prediction of values.
         """
-        return self._forward_propagate(data)
+        prediction = self._forward_propagate(data)
+
+        if targets is not None:
+            delta_error = 0
+            for error_index in range(len(targets)):
+                delta_error += self._calculate_delta(prediction[error_index], targets[error_index])
+            return prediction, delta_error
+        else:
+            return prediction

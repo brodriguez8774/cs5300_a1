@@ -36,7 +36,7 @@ class ResultTracker():
         if error_margin < self.iterations[self.best_iteration_index][1]:
             self.best_iteration_index = len(self.iterations) - 1
 
-    def continue_training_check(self, max_epochs=None, iteration_diff=10):
+    def continue_training_check(self, max_epochs=None):
         """
         Determines if Neural Net should continue training.
         :param max_epochs: Optional arg to set a max epoch count on training iterations.
@@ -52,13 +52,13 @@ class ResultTracker():
         # Check if Neural Net is still improving.
         if max_epochs is None:
             # Continue if progress has made in last x iterations.
-            if self.best_iteration_index > (total_iterations - iteration_diff):
+            if self.best_iteration_index > (total_iterations - self.min_iterations):
                 exit_training = True
         else:
             # Check if under epoch count.
             if total_iterations < max_epochs:
                 # Continue if progress has been made in last x iterations.
-                if self.best_iteration_index > (total_iterations - iteration_diff):
+                if self.best_iteration_index > (total_iterations - self.min_iterations):
                     exit_training = True
 
         return exit_training

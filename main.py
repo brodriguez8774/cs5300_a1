@@ -3,7 +3,8 @@ Back-propagation Neural Net.
 """
 
 # System Imports.
-import numpy, pandas
+from matplotlib import patches, pyplot
+import numpy, pandas, scipy
 
 # User Class Imports.
 from resources import logging
@@ -50,21 +51,23 @@ def randomize_data(data_size=None):
 normalized_data, _, _ = randomize_data()
 
 
-# Start neural net.
-backprop = neural_net.BackPropNet(normalized_data)
-backprop_tracker = result_tracker.ResultTracker(25)
 
+# Initialize variables
 epoch_count = 0
-epochs = 100         # Max number of times to step through instances of dataset.
+epochs = 20         # Max number of times to step through instances of dataset.
 data_step = 200     # Number of indexes to step forward while iterating through a single dataset instance.
-data_size = 2300     # Total number of records to include within a single dataset instance.
+data_size = 200     # Total number of records to include within a single dataset instance.
 
 # Initialize result sets.
 training_results = []
 prediction_results = []
 
+# Start neural net.
+backprop = neural_net.BackPropNet(normalized_data)
+backprop_tracker = result_tracker.ResultTracker(epochs/5)
+
 # Repeatedly iterate through full dataset. Continues until either epoch count is met or no further progress is made.
-while backprop_tracker.continue_training_check(max_epochs=epochs, iteration_diff=(epochs/5)):
+while backprop_tracker.continue_training_check(max_epochs=epochs):
     max_index = 0
     total_error = 0
 
@@ -89,4 +92,33 @@ while backprop_tracker.continue_training_check(max_epochs=epochs, iteration_diff
     # Print out total error for current epoch.
     backprop_tracker.add_iteration(weights, total_error)
     logger.info('Epoch {0} Total Error: {1}'.format(epoch_count, total_error))
+    training_results.append([total_error, epoch_count])
     epoch_count += 1
+
+
+# Plot accuracy of training, over time.
+training_numpy_array = numpy.asarray(training_results)
+prediction_numpy_array = numpy.asarray(prediction_results)
+x = []
+y = []
+
+for result in training_results:
+    pyplot.scatter(result[1], result[0], alpha=1, c='b')
+    x.append(result[1])
+    y.append(result[0])
+
+# Plot labels.
+pyplot.title('Results after 100 Runs')
+pyplot.xlabel('Total Iterations')
+pyplot.ylabel('Best Accuracy')
+
+# Create best-fit line.
+# Borrowed from https://stackoverflow.com/questions/22239691/code-for-line-of-best-fit-of-a-scatter-plot-in-python.
+pyplot.plot(numpy.unique(x), numpy.poly1d(numpy.polyfit(x, y, 1))(numpy.unique(x)), 'g', alpha=0.75)
+label_1 = patches.Patch(color='g', label='Best Fit Line')
+pyplot.legend(handles=[label_1])
+
+pyplot.show()
+
+
+logger.info('Exiting program.')
