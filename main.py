@@ -54,15 +54,15 @@ normalized_data, _, _ = randomize_data()
 
 # Initialize variables
 epoch_count = 0
-epochs = 20         # Max number of times to step through instances of dataset.
-data_step = 200     # Number of indexes to step forward while iterating through a single dataset instance.
-data_size = 200     # Total number of records to include within a single dataset instance.
+epochs = 200         # Max number of times to step through instances of dataset.
+data_step = 250     # Number of indexes to step forward while iterating through a single dataset instance.
+data_size = 2300     # Total number of records to include within a single dataset instance.
 
 # Initialize result sets.
 training_results = []
 prediction_results = []
 
-# Start neural net.
+# Start neural nets.
 backprop = neural_net.BackPropNet(normalized_data)
 backprop_tracker = result_tracker.ResultTracker(epochs/5)
 
@@ -108,9 +108,9 @@ for result in training_results:
     y.append(result[0])
 
 # Plot labels.
-pyplot.title('Results after 100 Runs')
-pyplot.xlabel('Total Iterations')
-pyplot.ylabel('Best Accuracy')
+pyplot.title('Network Error Results')
+pyplot.xlabel('Epoch Number')
+pyplot.ylabel('Epoch Error')
 
 # Create best-fit line.
 # Borrowed from https://stackoverflow.com/questions/22239691/code-for-line-of-best-fit-of-a-scatter-plot-in-python.
@@ -119,6 +119,12 @@ label_1 = patches.Patch(color='g', label='Best Fit Line')
 pyplot.legend(handles=[label_1])
 
 pyplot.show()
+
+
+# # Dillon's implementation of backprop.
+# tensor_backprop = neural_net.TensorBackProp(normalized_data)
+# tensor_backprop.train()
+# tensor_backprop = None
 
 
 logger.info('Exiting program.')

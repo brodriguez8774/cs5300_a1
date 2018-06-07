@@ -4,7 +4,7 @@ Neural Net logic.
 
 # System Imports.
 from sklearn import preprocessing
-import numpy, pandas
+import itertools, numpy, pandas, tensorflow
 
 # User Class Imports.
 from resources import logging
@@ -402,3 +402,72 @@ class BackPropNet():
             return prediction, delta_error
         else:
             return prediction
+
+
+class TensorBackProp():
+    """
+    Imported from https://github.com/dillondaudert/cs5300ans/blob/master/tf_examples/HousingEx.ipynb.
+    Just an example of how to implement backprop in tensorflow.
+    """
+    def __init__(self, data):
+        logger.info('Starting Backprop Tensor Net.')
+        self.features = data.iloc[numpy.random.permutation(len(data))]
+        self.targets = data.loc[:, data.columns != 'SalePrice']
+        self.dataset = self.create_tensor_dataset(self.features, self.targets)
+
+    def __del__(self):
+        logger.info('Backprop Tensor Net finished.')
+
+    def create_tensor_dataset(self, features, targets, num_epochs=1, shuffle=5000, batch_size=5):
+        dataset = tensorflow.data.Dataset.from_tensor_slices((features, targets))
+        dataset = dataset.shuffle(shuffle)
+        dataset = dataset.repeat(num_epochs)
+        dataset = dataset.batch(batch_size)
+        dataset = dataset.prefetch(1)
+        return dataset
+
+    def create_model(self, iterator):
+        feature, target = iterator.get_next()
+
+        hidden = tensorflow.layers.dense(feature, 400, activation=tensorflow.nn.sigmoid)
+        hidden = tensorflow.layers.dense(hidden, 100, activation=tensorflow.nn.sigmoid)
+
+        out = tensorflow.layers.dense(hidden, 345, activation=tensorflow.nn.sigmoid)
+
+        loss = tensorflow.losses.mean_squared_error(target, out)
+        tensorflow.summary.scalar("MSE", loss, collections=["summs"])
+
+        opt = tensorflow.train.GradientDescentOptimizer(learning_rate=0.01)
+        update = opt.minimize(loss)
+
+        return loss, out, update
+
+    def train(self):
+        # Initialize tensorflow session.
+        input_matrix = tensorflow.placeholder(tensorflow.float64, shape=self.features.shape)
+        output_matrix = tensorflow.placeholder(tensorflow.float64, shape=self.targets.shape)
+        iterator = self.dataset.make_initializable_iterator()
+        loss, out, update = self.create_model(iterator)
+
+        writer = tensorflow.summary.FileWriter("./housing/")
+        writer.add_graph(tensorflow.get_default_graph())
+        summaries = tensorflow.summary.merge_all("summs")
+
+        with tensorflow.Session() as sess:
+            init = tensorflow.global_variables_initializer()
+            sess.run(init)
+            sess.run(iterator.initializer,
+                     feed_dict={input_matrix: self.features,
+                                output_matrix: self.targets})
+            step = 0
+            while True:
+                try:
+                    step += 1
+                    tr_loss, _, summ = sess.run([loss, update, summaries])
+                    if step % 50 == 0:
+                        print("Step %d: %3.3f" % (step, tr_loss))
+                        writer.add_summary(summ, step)
+                except tensorflow.errors.OutOfRangeError:
+                    print("Training done.")
+                    writer.close()
+                    break
