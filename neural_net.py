@@ -4,7 +4,7 @@ Neural Net logic.
 
 # System Imports.
 from sklearn import preprocessing
-import itertools, numpy, pandas, tensorflow
+import numpy, pandas, tensorflow
 
 # User Class Imports.
 from resources import logging

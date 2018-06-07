@@ -3,8 +3,8 @@ Back-propagation Neural Net.
 """
 
 # System Imports.
-from matplotlib import patches, pyplot
-import numpy, pandas, scipy
+from matplotlib import pyplot
+import numpy, pandas
 
 # User Class Imports.
 from resources import logging
@@ -60,7 +60,7 @@ data_size = 2300     # Total number of records to include within a single datase
 
 # Initialize result sets.
 training_results = []
-prediction_results = []
+reduced_training_results = []
 
 # Start neural nets.
 backprop = neural_net.BackPropNet(normalized_data)
@@ -89,36 +89,26 @@ while backprop_tracker.continue_training_check(max_epochs=epochs):
         weights, error = backprop.train(training_features.values, training_targets.values, learn_rate=0.001)
         total_error += error
 
+    # Since the error seems arbitrary depending on data_size and data_step (doesn't appear to be a direct monetary
+    # value), standardize error output to the one's place. I've yet to see values below 1 so this should (hopefully)
+    # account for all possibilities.
+    reduced_error = total_error
+    while reduced_error > 10:
+        reduced_error = reduced_error / 10
+
     # Print out total error for current epoch.
     backprop_tracker.add_iteration(weights, total_error)
     logger.info('Epoch {0} Total Error: {1}'.format(epoch_count, total_error))
     training_results.append([total_error, epoch_count])
+    reduced_training_results.append([reduced_error, epoch_count])
     epoch_count += 1
 
-
 # Plot accuracy of training, over time.
-training_numpy_array = numpy.asarray(training_results)
-prediction_numpy_array = numpy.asarray(prediction_results)
-x = []
-y = []
+backprop_tracker.plot_results(numpy.asarray(training_results))
+backprop_tracker.display_plot()
 
-for result in training_results:
-    pyplot.scatter(result[1], result[0], alpha=1, c='b')
-    x.append(result[1])
-    y.append(result[0])
-
-# Plot labels.
-pyplot.title('Network Error Results')
-pyplot.xlabel('Epoch Number')
-pyplot.ylabel('Epoch Error')
-
-# Create best-fit line.
-# Borrowed from https://stackoverflow.com/questions/22239691/code-for-line-of-best-fit-of-a-scatter-plot-in-python.
-pyplot.plot(numpy.unique(x), numpy.poly1d(numpy.polyfit(x, y, 1))(numpy.unique(x)), 'g', alpha=0.75)
-label_1 = patches.Patch(color='g', label='Best Fit Line')
-pyplot.legend(handles=[label_1])
-
-pyplot.show()
+backprop_tracker.plot_results(numpy.asarray(reduced_training_results))
+backprop_tracker.display_plot()
 
 
 # # Dillon's implementation of backprop.
