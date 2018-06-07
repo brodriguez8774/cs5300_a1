@@ -67,7 +67,15 @@ class ResultTracker():
 
         return exit_training
 
-    def plot_results(self,  results, best_fit_line=False, mean_line=False):
+    def plot_results(self, results, best_fit_line=False, mean_line=False):
+        """
+        Appends results to pyplot graph.
+        Can take in multiple sets of results per graph. Simply call function multiple times.
+        To actually display results, run display_plot method.
+        :param results: Numpy array in format of [error, epoch/index]
+        :param best_fit_line: Bool to display best fit line.
+        :param mean_line: Bool to display mean line.
+        """
         # Plot accuracy of training, over time.
         x = []
         y = []
